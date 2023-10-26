@@ -1,0 +1,289 @@
+from tabulate import tabulate
+from datetime import date
+import datetime
+import random as rd
+import matplotlib.pyplot as plt
+import mysql.connector as sqlc
+
+
+
+name='Devdat'
+registry={}
+pass_word='error_password'
+
+
+
+def connect():
+    global conn
+    global a
+    try:
+        conn = sqlc.connect(
+            host="localhost",
+            user="root",
+            password="devdat",
+            database="resto",
+            charset="utf8",
+        )
+        if conn.is_connected():
+            print("Successfully connected")
+        else:
+            print("Failed to connect")
+    except sqlc.connectError as c:
+        print(f'Error connecting:{c}')
+
+connect()
+#############################################################
+#Function to display the menu
+def menu():
+    try:
+        query=("select * from menu;")
+        lstmain1=[]
+        a=conn.cursor()
+        a.execute(query)
+        data=a.fetchall()
+        for row in data:
+            x=[row[0],row[1],row[2]]
+            lstmain1.append(x)
+
+        xyz = tabulate(lstmain1, headers=["Order no","Food item", "Cost"],tablefmt='rounded_outline')
+        print(xyz)                            
+    except:
+        print("Error loading menu")
+#menu()
+###########################################################
+#function for business data 
+def business():    
+    try:
+        query=("select * from revenue;")
+        lstrev=[]
+        a=conn.cursor()
+        a.execute(query)
+        revenue=a.fetchall()
+        for row in revenue:
+            x=[row[0],row[1],row[2],row[3]]
+            lstrev.append(x)
+
+        rev_info = tabulate(lstrev, headers=["Date", "Revenue", "No. of customers","Day"], tablefmt='grid')
+        print(rev_info)                          
+    except:
+        "Error loading menu"
+
+##############################################################
+# function to add items
+def menu_change():
+    x=int(input("Would you like to \n1. Add item\n2.Remove item\n:"))
+    a = conn.cursor()
+    if x==1:
+    
+        print("Adding items...")
+        
+        x = int(input("How many items do you want to add:"))
+    
+        for i in range(x):
+            item_id = int(input("Enter the item id:"))
+            item_name = input("Item to add:")
+            item_cost = int(input("Enter the cost:"))
+        
+            try:
+                # Use placeholders and pass values as a tuple
+                query = "INSERT INTO menu (id, Item, cost) VALUES (%s, %s, %s);"
+                values = (item_id, item_name, item_cost)
+                a.execute(query, values)
+            except Exception as e:
+                print(f"Error inserting item: {e}")
+    elif x==2:
+        print("Removing item")
+        id=int(input("Enter the item id:"))
+        
+        try:
+            query2 = f"DELETE FROM menu WHERE id={id};"
+            a.execute(query2)
+        except Exception as e:
+            print(f"Error inserting item: {e}")
+    conn.commit()
+
+
+
+# ############################################################
+#Inputing Business data into revenue file
+
+def rev_input(amount, orders):
+    # Get the current date and time
+    now = datetime.datetime.now()
+    
+    # Use strftime() to format the date and time as a string
+    # with the weekday name (e.g. "Monday", "Tuesday", etc.)
+    weekday = now.strftime("%A")
+    date_ = str(date.today())
+    
+    a = conn.cursor()
+
+    query = "INSERT INTO revenue (date_, amount, orders, weekday) VALUES (%s, %s, %s, %s);"
+    values = (date_, amount, orders, weekday)
+    
+    try:
+        a.execute(query, values)
+        conn.commit()
+    except Exception as e:
+        print("Error inserting:",e)
+        print("Something went wrong")
+
+################################################################
+
+
+#main code
+
+while pass_word=='error_password': 
+    user_name=input("Username:" )
+    pass_word=input("Password:")
+
+    if pass_word=='bill' and user_name=='admin':   #change password here
+        q ='y'
+        print('Hello',name)
+        while q == 'y':
+                print("1. Display Bill\n2. Add Items\n3. Business information\n4.Log out")
+                f=int(input("Enter your Choice:"))
+                if f == 2:
+                    print("\t\t\t\t\tBILLING SYSTEM")
+
+                    # get the name, address, and phone number of the restaurant
+                    hotel_name = "HOTEL KRISHNA VILASA"   #Please Enter your restaurant name b/w "_".
+                    address = "Kulur Ferry Rd, Urwa, Mangaluru, Karnataka 575006"#address
+                    phone = "9591241675"#phone number
+                    print("")
+                    menu_change()    
+                    q = input("Back to Menu? [y/n]")
+
+                elif f == 1:
+                    menu()
+                    q = input("Back to Menu? [y/n]")
+                elif f==3:
+                    business()
+                    q = input("Back to Menu? [y/n]")
+                elif f==4:
+                    print('Succesfully logged off')
+                    q='n'
+
+            
+            
+        
+    elif pass_word=='user' and user_name=='work':#change password for waiter here
+        print('Greetings!')
+        hotel_name = "HOTEL KRISHNA VILASA"   #Please Enter your restaurant name b/w "_".
+        address = "Kulur Ferry Rd, Urwa, Mangaluru, Karnataka 575006"#address
+        phone = "9591241675"#phone number
+        
+        print("")
+        print("\tMenu")
+        try:
+            query=("select * from menu;")
+            lstmain1=[]
+            a=conn.cursor()
+            a.execute(query)
+            data=a.fetchall()
+            for row in data:
+                x=[row[0],row[1],row[2]]
+                lstmain1.append(x)
+
+            xyz = tabulate(lstmain1, headers=["Order no","Food item", "Cost"],tablefmt='rounded_outline')
+            print(xyz)                            
+        except:
+            print("Error loading menu")
+        
+        print("-----------------")
+
+        # create a loop to process multiple bills
+        loop_bill = 'yes'
+        count=0#number of customers
+        amt=0#for total revenue
+        client=1#order number
+        gry=[]#graph data(y-axis)
+        grx=[]#graph data(x-axis)
+        while loop_bill == 'yes':
+            # initialize a list to store the items and their corresponding quantities and prices for the current bill
+            bill_items = []
+            kot_bill=[]
+            total_cost = 0
+
+            # create a loop to add items to the bill
+            next_item = 'y'
+            #To see the order number of the customer
+            print("» Order number",client)
+            gry.append(str(client))
+
+            while next_item == 'y':    
+                # get the order number and item details
+                print()
+                while True:
+                    try:
+                        item_number = int(input("Enter the item no: "))
+                        item = lstmain1[item_number - 1][1]
+                        cost = lstmain1[item_number - 1][2]
+                        break
+                    except:
+                        print("Value error, item doesn't exist, please retry!")
+               
+                # ask the user for the quantity of the item
+                quantity = int(input("Enter the quantity: "))
+
+                # add the item, quantity, and cost to the bill
+                bill_items.append([item, quantity, quantity*cost])
+
+                #adding item and qty. to KOT bill
+                kot_bill.append([item,quantity])
+
+                # add the cost of the item to the total cost
+                total_cost += cost * quantity
+               
+                # ask the user if they want to add more items
+                next_item = input("More Items? [y/n] ")
+
+            # print the bill
+            print(40*'*')
+            print("\n" + hotel_name)
+            print(address)
+            print("Phone: " + phone)
+            print(date.today())
+            print("Bill No.: " + str(rd.randint(1000, 9999)))
+            print(tabulate(bill_items, headers=["Item", "Quantity", "Cost"], tablefmt='rounded_outline'))
+            print("Total Cost: ₹" + str(total_cost))
+            count+=1
+            client+=1
+            grx.append(total_cost)
+            amt+=total_cost
+            print(60*'*')
+            # ask the user if they want to process another bill
+
+            #Kitchen purpose bill KOT
+            print(60*'*')
+            print("\n" + hotel_name)
+            print(address)
+            print(date.today())
+            print(tabulate(kot_bill, headers=["Item", "Quantity"],tablefmt='rounded_outline'))
+            # ask the user if they want to process another bill
+            loop_bill = input("\nNext Order? [yes/no] ")
+            print()
+           
+        print("\n\n")
+        print("The number of orders taken today is",count)
+        print("The total revenue today is ₹",amt)
+        print("The average revenue per order is",amt/count)
+
+        plt.bar(gry, grx)
+
+            # Add a title and label the axes
+        plt.title('Revenue today')
+        plt.ylabel('Collected amount')
+        plt.xlabel('Order number')
+
+        # Show the plot
+        plt.show()
+
+
+        #saving todays business stat in revenue file
+        rev_input(amt,count)
+
+
+    else:
+        print("Wrong Username or Password\nPlease Retry!")
+        pass_word='error_password'
