@@ -118,7 +118,7 @@ def rev_input(amount, orders):
     
     a = conn.cursor()
 
-    query = "INSERT INTO revenue (date_, amount, orders, weekday) VALUES (%s, %s, %s, %s);"
+    query = "INSERT INTO revenue (date, revenue, orders, weekday) VALUES (%s, %s, %s, %s);"
     values = (date_, amount, orders, weekday)
     
     try:
